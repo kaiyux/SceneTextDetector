@@ -82,6 +82,10 @@ def coco_classes():
     ]
 
 
+def icdar_classes():
+    return ['text']
+
+
 def cityscapes_classes():
     return [
         'person', 'rider', 'car', 'truck', 'bus', 'train', 'motorcycle',
