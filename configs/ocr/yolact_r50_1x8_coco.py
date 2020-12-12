@@ -85,7 +85,7 @@ test_cfg = dict(
     top_k=200,
     max_per_img=100)
 # dataset settings
-dataset_type = 'CocoDataset'
+dataset_type = 'ICDARDataset'
 data_root = 'data/coco/'
 img_norm_cfg = dict(
     mean=[123.68, 116.78, 103.94], std=[58.40, 57.12, 57.38], to_rgb=True)
@@ -128,7 +128,7 @@ test_pipeline = [
         ])
 ]
 data = dict(
-    samples_per_gpu=8,
+    samples_per_gpu=12,
     workers_per_gpu=4,
     train=dict(
         type=dataset_type,
