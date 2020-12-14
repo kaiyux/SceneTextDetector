@@ -1,23 +1,19 @@
 import torch
 import torch.nn as nn
-from mmcv.cnn import normal_init
+from mmcv.ops import ModulatedDeformConv2dPack
 
 from mmdet.core import distance2bbox, force_fp32, multi_apply, multiclass_nms, multiclass_nms_with_mask
-from mmdet.ops import ModulatedDeformConvPack
 
 from ..builder import build_loss
-from ..registry import HEADS
-from ..utils import ConvModule, Scale, bias_init_with_prob, build_norm_layer
-from IPython import embed
-import cv2
+from ..builder import HEADS
+from mmcv.cnn import ConvModule, Scale, bias_init_with_prob, build_norm_layer, normal_init
 import numpy as np
 import math
-import time
 
 INF = 1e8
 
 
-@HEADS.register_module
+@HEADS.register_module()
 class PolarMask_Head(nn.Module):
 
     def __init__(self,
@@ -43,8 +39,9 @@ class PolarMask_Head(nn.Module):
                      use_sigmoid=True,
                      loss_weight=1.0),
                  conv_cfg=None,
-                 norm_cfg=dict(type='GN', num_groups=32, requires_grad=True)):
-        super(PolarMask_Head, self).__init__()
+                 norm_cfg=dict(type='GN', num_groups=32, requires_grad=True),
+                 **kwargs):
+        super().__init__()
 
         self.num_classes = num_classes
         self.cls_out_channels = num_classes - 1
@@ -112,7 +109,7 @@ class PolarMask_Head(nn.Module):
                         bias=self.norm_cfg is None))
             else:
                 self.cls_convs.append(
-                    ModulatedDeformConvPack(
+                    ModulatedDeformConv2dPack(
                         chn,
                         self.feat_channels,
                         3,
@@ -122,11 +119,12 @@ class PolarMask_Head(nn.Module):
                         deformable_groups=1,
                     ))
                 if self.norm_cfg:
-                    self.cls_convs.append(build_norm_layer(self.norm_cfg, self.feat_channels)[1])
+                    self.cls_convs.append(build_norm_layer(
+                        self.norm_cfg, self.feat_channels)[1])
                 self.cls_convs.append(nn.ReLU(inplace=True))
 
                 self.reg_convs.append(
-                    ModulatedDeformConvPack(
+                    ModulatedDeformConv2dPack(
                         chn,
                         self.feat_channels,
                         3,
@@ -136,11 +134,12 @@ class PolarMask_Head(nn.Module):
                         deformable_groups=1,
                     ))
                 if self.norm_cfg:
-                    self.reg_convs.append(build_norm_layer(self.norm_cfg, self.feat_channels)[1])
+                    self.reg_convs.append(build_norm_layer(
+                        self.norm_cfg, self.feat_channels)[1])
                 self.reg_convs.append(nn.ReLU(inplace=True))
 
                 self.mask_convs.append(
-                    ModulatedDeformConvPack(
+                    ModulatedDeformConv2dPack(
                         chn,
                         self.feat_channels,
                         3,
@@ -150,7 +149,8 @@ class PolarMask_Head(nn.Module):
                         deformable_groups=1,
                     ))
                 if self.norm_cfg:
-                    self.mask_convs.append(build_norm_layer(self.norm_cfg, self.feat_channels)[1])
+                    self.mask_convs.append(build_norm_layer(
+                        self.norm_cfg, self.feat_channels)[1])
                 self.mask_convs.append(nn.ReLU(inplace=True))
 
         self.polar_cls = nn.Conv2d(
@@ -217,12 +217,14 @@ class PolarMask_Head(nn.Module):
              gt_masks,
              gt_bboxes_ignore=None,
              extra_data=None):
-        assert len(cls_scores) == len(bbox_preds) == len(centernesses) == len(mask_preds)
+        assert len(cls_scores) == len(bbox_preds) == len(
+            centernesses) == len(mask_preds)
         featmap_sizes = [featmap.size()[-2:] for featmap in cls_scores]
         all_level_points = self.get_points(featmap_sizes, bbox_preds[0].dtype,
                                            bbox_preds[0].device)
 
-        labels, bbox_targets, mask_targets = self.polar_target(all_level_points, extra_data)
+        labels, bbox_targets, mask_targets = self.polar_target(
+            all_level_points, extra_data)
 
         num_imgs = cls_scores[0].size(0)
         # flatten cls_scores, bbox_preds and centerness
@@ -264,7 +266,8 @@ class PolarMask_Head(nn.Module):
         if num_pos > 0:
             pos_bbox_targets = flatten_bbox_targets[pos_inds]
             pos_mask_targets = flatten_mask_targets[pos_inds]
-            pos_centerness_targets = self.polar_centerness_target(pos_mask_targets)
+            pos_centerness_targets = self.polar_centerness_target(
+                pos_mask_targets)
 
             pos_points = flatten_points[pos_inds]
             pos_decoded_bbox_preds = distance2bbox(pos_points, pos_bbox_preds)
@@ -361,7 +364,8 @@ class PolarMask_Head(nn.Module):
 
     def polar_centerness_target(self, pos_mask_targets):
         # only calculate pos centerness targets, otherwise there may be nan
-        centerness_targets = (pos_mask_targets.min(dim=-1)[0] / pos_mask_targets.max(dim=-1)[0])
+        centerness_targets = (pos_mask_targets.min(
+            dim=-1)[0] / pos_mask_targets.max(dim=-1)[0])
         return torch.sqrt(centerness_targets)
 
     @force_fp32(apply_to=('cls_scores', 'bbox_preds', 'centernesses'))
@@ -438,7 +442,8 @@ class PolarMask_Head(nn.Module):
                 scores = scores[topk_inds, :]
                 centerness = centerness[topk_inds]
             bboxes = distance2bbox(points, bbox_pred, max_shape=img_shape)
-            masks = distance2mask(points, mask_pred, self.angles, max_shape=img_shape)
+            masks = distance2mask(
+                points, mask_pred, self.angles, max_shape=img_shape)
 
             mlvl_bboxes.append(bboxes)
             mlvl_scores.append(scores)
@@ -450,7 +455,8 @@ class PolarMask_Head(nn.Module):
         if rescale:
             _mlvl_bboxes = mlvl_bboxes / mlvl_bboxes.new_tensor(scale_factor)
             try:
-                scale_factor = torch.Tensor(scale_factor)[:2].cuda().unsqueeze(1).repeat(1, 36)
+                scale_factor = torch.Tensor(scale_factor)[
+                    :2].cuda().unsqueeze(1).repeat(1, 36)
                 _mlvl_masks = mlvl_masks / scale_factor
             except:
                 _mlvl_masks = mlvl_masks / mlvl_masks.new_tensor(scale_factor)
@@ -460,11 +466,13 @@ class PolarMask_Head(nn.Module):
         mlvl_scores = torch.cat([padding, mlvl_scores], dim=1)
         mlvl_centerness = torch.cat(mlvl_centerness)
 
-        centerness_factor = 0.5  # mask centerness is smaller than origin centerness, so add a constant is important or the score will be too low.
+        # mask centerness is smaller than origin centerness, so add a constant is important or the score will be too low.
+        centerness_factor = 0.5
         if self.mask_nms:
             '''1 mask->min_bbox->nms, performance same to origin box'''
             a = _mlvl_masks
-            _mlvl_bboxes = torch.stack([a[:, 0].min(1)[0],a[:, 1].min(1)[0],a[:, 0].max(1)[0],a[:, 1].max(1)[0]],-1)
+            _mlvl_bboxes = torch.stack([a[:, 0].min(1)[0], a[:, 1].min(
+                1)[0], a[:, 0].max(1)[0], a[:, 1].max(1)[0]], -1)
             det_bboxes, det_labels, det_masks = multiclass_nms_with_mask(
                 _mlvl_bboxes,
                 mlvl_scores,
@@ -518,6 +526,3 @@ def distance2mask(points, distances, angles, max_shape=None):
 
     res = torch.cat([x[:, None, :], y[:, None, :]], dim=1)
     return res
-
-
-

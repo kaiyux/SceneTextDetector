@@ -1,22 +1,23 @@
 from mmdet.apis import init_detector, inference_detector
 import mmcv
 import numpy as np
+import os
+from tqdm import tqdm
 
 
 # Specify the path to model config and checkpoint file
-config_file = 'configs/ocr/fcos_r50_caffe_fpn_gn-head_4x4_1x_coco.py'
-checkpoint_file = 'work_dirs/fcos_r50_caffe_fpn_gn-head_4x4_1x_coco/epoch_4.pth'
+config_file = 'work_dirs/yolact_r101_1x8_coco/yolact_r101_1x8_coco.py'
+checkpoint_file = 'work_dirs/yolact_r101_1x8_coco/latest.pth'
 
 # build the model from a config file and a checkpoint file
 model = init_detector(config_file, checkpoint_file, device='cuda:0')
 
-# test a single image and show the results
-# or img = mmcv.imread(img), which will only load it once
-img = '/home/xiekaiyu/ocr/dataset/ICDAR2015TextLocalization/test_img/img_10.jpg'
-result = inference_detector(model, img)
-bboxes = np.vstack(result)
-print(bboxes)
-# visualize the results in a new window
-# model.show_result(img, result)
-# or save the visualization results to image files
-model.show_result(img, result, out_file='result.jpg')
+
+image_dir = '/home/xiekaiyu/ocr/dataset/ICDAR2015TextLocalization/test_img'
+output_dir = '/home/xiekaiyu/ocr/dataset/ICDAR2015TextLocalization/output/yolact_r101_1x8_coco'
+
+for img in tqdm(os.listdir(image_dir)):
+    image_path = os.path.join(image_dir, img)
+    output_path = os.path.join(output_dir, img)
+    result = inference_detector(model, image_path)
+    model.show_result(image_path, result, out_file=output_path)
