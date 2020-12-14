@@ -2,6 +2,7 @@ import torch
 from mmcv.ops.nms import batched_nms
 
 from mmdet.core.bbox.iou_calculators import bbox_overlaps
+from mmcv.ops.nms import nms, soft_nms
 
 
 def multiclass_nms(multi_bboxes,
@@ -95,7 +96,10 @@ def multiclass_nms_with_mask(multi_bboxes,
     bboxes, labels, masks = [], [], []
     nms_cfg_ = nms_cfg.copy()
     nms_type = nms_cfg_.pop('type', 'nms')
-    nms_op = getattr(nms_wrapper, nms_type)
+    if nms_type == 'nms':
+        nms_op = nms
+    else:
+        nms_op = soft_nms
     for i in range(1, num_classes):
         cls_inds = multi_scores[:, i] > score_thr
         if not cls_inds.any():
