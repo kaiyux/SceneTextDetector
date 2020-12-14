@@ -13,6 +13,7 @@ from .voc import VOCDataset
 from .wider_face import WIDERFaceDataset
 from .xml_style import XMLDataset
 from .coco_seg import Coco_Seg_Dataset
+from .utils import random_scale, show_ann, to_tensor
 
 __all__ = [
     'CustomDataset', 'XMLDataset', 'CocoDataset', 'DeepFashionDataset',
@@ -20,5 +21,6 @@ __all__ = [
     'LVISV1Dataset', 'GroupSampler', 'DistributedGroupSampler',
     'DistributedSampler', 'build_dataloader', 'ConcatDataset', 'RepeatDataset',
     'ClassBalancedDataset', 'WIDERFaceDataset', 'DATASETS', 'PIPELINES',
-    'build_dataset', 'replace_ImageToTensor', 'ICDARDataset', 'Coco_Seg_Dataset', 'CustomSegDataset'
+    'build_dataset', 'replace_ImageToTensor', 'ICDARDataset', 'Coco_Seg_Dataset', 'CustomSegDataset',
+    'random_scale', 'show_ann', 'to_tensor'
 ]

@@ -68,7 +68,7 @@ data = dict(
         img_scale=(1280, 768),
         img_norm_cfg=img_norm_cfg,
         # size_divisor=0,
-        flip_ratio=0.5,
+        flip_ratio=0,
         with_mask=True,
         with_crowd=False,
         with_label=True,
@@ -103,10 +103,11 @@ data = dict(
 lr_ratio = 1
 optimizer = dict(
     type='SGD',
-    lr=0.01 * lr_ratio,
+    lr=0.0001 * lr_ratio,
     momentum=0.9,
     weight_decay=0.0001)
-optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
+optimizer_config = dict()
+# optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
 # learning policy
 lr_config = dict(
     policy='step',
@@ -128,7 +129,6 @@ total_epochs = 5
 device_ids = range(4)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/polar_768_1x_r50'
 load_from = None
 resume_from = None
 workflow = [('train', 1)]

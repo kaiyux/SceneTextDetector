@@ -121,3 +121,10 @@ def replace_ImageToTensor(pipelines):
                 'data pipeline in your config file.', UserWarning)
             pipelines[i] = {'type': 'DefaultFormatBundle'}
     return pipelines
+
+
+def show_ann(coco, img, ann_info):
+    plt.imshow(mmcv.bgr2rgb(img))
+    plt.axis('off')
+    coco.showAnns(ann_info)
+    plt.show()

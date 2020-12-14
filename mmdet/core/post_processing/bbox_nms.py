@@ -96,6 +96,7 @@ def multiclass_nms_with_mask(multi_bboxes,
     bboxes, labels, masks = [], [], []
     nms_cfg_ = nms_cfg.copy()
     nms_type = nms_cfg_.pop('type', 'nms')
+    iou_thr = nms_cfg_.pop('iou_thr', 0.5)
     if nms_type == 'nms':
         nms_op = nms
     else:
@@ -113,8 +114,7 @@ def multiclass_nms_with_mask(multi_bboxes,
         _scores = multi_scores[cls_inds, i]
         if score_factors is not None:
             _scores *= score_factors[cls_inds]
-        cls_dets = torch.cat([_bboxes, _scores[:, None]], dim=1)
-        cls_dets, index = nms_op(cls_dets, **nms_cfg_)
+        cls_dets, index = nms_op(_bboxes, _scores[:, None].transpose(0,1)[0], iou_thr)
         cls_masks = _masks[index]
         cls_labels = multi_bboxes.new_full((cls_dets.shape[0], ),
                                            i - 1,

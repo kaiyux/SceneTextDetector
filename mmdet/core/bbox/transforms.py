@@ -1,6 +1,9 @@
 import numpy as np
 import torch
 
+import cv2
+import pycocotools.mask as mask_util
+
 
 def bbox_flip(bboxes, img_shape, direction='horizontal'):
     """Flip bboxes horizontally or vertically.
