@@ -2,10 +2,10 @@ import torch
 import torch.nn as nn
 from mmcv.ops import ModulatedDeformConv2dPack
 
-from mmdet.core import distance2bbox, force_fp32, multi_apply, multiclass_nms, multiclass_nms_with_mask
+from mmdet.core import distance2bbox, multi_apply, multiclass_nms, multiclass_nms_with_mask
+from mmcv.runner import force_fp32
 
-from ..builder import build_loss
-from ..builder import HEADS
+from ..builder import HEADS, build_loss
 from mmcv.cnn import ConvModule, Scale, bias_init_with_prob, build_norm_layer, normal_init
 import numpy as np
 import math
