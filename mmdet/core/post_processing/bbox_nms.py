@@ -114,7 +114,7 @@ def multiclass_nms_with_mask(multi_bboxes,
         _scores = multi_scores[cls_inds, i]
         if score_factors is not None:
             _scores *= score_factors[cls_inds]
-        cls_dets, index = nms_op(_bboxes, _scores[:, None].transpose(0,1)[0], iou_thr)
+        cls_dets, index = nms_op(_bboxes, _scores, iou_thr)
         cls_masks = _masks[index]
         cls_labels = multi_bboxes.new_full((cls_dets.shape[0], ),
                                            i - 1,
