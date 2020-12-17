@@ -1,7 +1,9 @@
+
+
 # model settings
 model = dict(
     type='PolarMask',
-    pretrained='torchvision://resnet50',
+    pretrained='open-mmlab://resnet50_caffe',
     backbone=dict(
         type='ResNet',
         depth=50,
@@ -25,6 +27,7 @@ model = dict(
         in_channels=256,
         stacked_convs=4,
         feat_channels=256,
+        norm_on_bbox=True, #trick
         strides=[8, 16, 32, 64, 128],
         loss_cls=dict(
             type='FocalLoss',
@@ -33,7 +36,6 @@ model = dict(
             alpha=0.25,
             loss_weight=1.0),
         loss_bbox=dict(type='IoULoss', loss_weight=1.0),
-        loss_mask=dict(type='MaskIOULoss'),
         loss_centerness=dict(
             type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0)))
 # training and testing settings
@@ -53,32 +55,31 @@ test_cfg = dict(
     score_thr=0.05,
     nms=dict(type='nms', iou_thr=0.5),
     max_per_img=100)
-
 # dataset settings
 dataset_type = 'Coco_Seg_Dataset'
-data_root = 'data/coco/'
+data_root = '/home/tikboa/306_server_work/kaggleHuBMAP/cache/coco_mini/'
 img_norm_cfg = dict(
     mean=[102.9801, 115.9465, 122.7717], std=[1.0, 1.0, 1.0], to_rgb=False)
 data = dict(
-    samples_per_gpu=4,
-    workers_per_gpu=4,
+    imgs_per_gpu=1,
+    workers_per_gpu=5,
     train=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/train.json',
         img_prefix=data_root + 'train/',
-        img_scale=(1280, 768),
+        img_scale=(512, 512),
         img_norm_cfg=img_norm_cfg,
         # size_divisor=0,
-        flip_ratio=0,
+        flip_ratio=0.5,
         with_mask=True,
         with_crowd=False,
         with_label=True,
         resize_keep_ratio=False),
     val=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/val.json',
-        img_prefix=data_root + 'val/',
-        img_scale=(1280, 768),
+        ann_file=data_root + 'annotations/train.json',
+        img_prefix=data_root + 'train/',
+        img_scale=(512, 512),
         img_norm_cfg=img_norm_cfg,
         # size_divisor=0,
         flip_ratio=0,
@@ -88,9 +89,9 @@ data = dict(
         resize_keep_ratio=False),
     test=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/test.json',
-        img_prefix=data_root + 'test/',
-        img_scale=(1280, 768),
+        ann_file=data_root + 'annotations/train.json',
+        img_prefix=data_root + 'train/',
+        img_scale=(512, 512),
         img_norm_cfg=img_norm_cfg,
         size_divisor=32,
         flip_ratio=0,
@@ -99,37 +100,38 @@ data = dict(
         with_label=False,
         resize_keep_ratio=False,
         test_mode=True))
-
 # optimizer
-lr_ratio = 1
+lr_ratio = 0.125
+
 optimizer = dict(
     type='SGD',
-    lr=0.0001 * lr_ratio,
+    lr=0.01 * lr_ratio,
     momentum=0.9,
-    weight_decay=0.0001)
-optimizer_config = dict()
-# optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
+    weight_decay=0.0001,
+    paramwise_options=dict(bias_lr_mult=2., bias_decay_mult=0.))
+optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
 # learning policy
 lr_config = dict(
     policy='step',
     warmup='linear',
     warmup_iters=500,
-    warmup_ratio=1.0 / 3 / lr_ratio,
-    step=[4, 6, 8])
+    warmup_ratio=0.5,
+    step=[8, 11])
 checkpoint_config = dict(interval=1)
 # yapf:disable
 log_config = dict(
-    interval=10,
+    interval=1,
     hooks=[
         dict(type='TextLoggerHook'),
         # dict(type='TensorboardLoggerHook')
     ])
 # yapf:enable
 # runtime settings
-total_epochs = 8
-device_ids = range(4)
+total_epochs = 20
+device_ids = [0]
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
+work_dir = './work_dirs/polar_coco_mini'
 load_from = None
 resume_from = None
 workflow = [('train', 1)]

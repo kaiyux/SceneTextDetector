@@ -6,12 +6,14 @@ from tqdm import tqdm
 
 
 # Specify the path to model config and checkpoint file
-model_name = 'polar_768_1x_r50'
-from mmdet.apis import polar_inference_detector as inference_detector
-from mmdet.apis import polar_init_detector as init_detector
+model_name = 'polar_coco_mini'
+if 'polar' in model_name:
+    from mmdet.apis import polar_inference_detector as inference_detector
 
 config_file = 'work_dirs/'+model_name+'/'+model_name+'.py'
 checkpoint_file = 'work_dirs/'+model_name+'/latest.pth'
+
+print(f'inferencing using model: {checkpoint_file}')
 
 # build the model from a config file and a checkpoint file
 model = init_detector(config_file, checkpoint_file, device='cuda:0')
@@ -24,6 +26,7 @@ for img in tqdm(os.listdir(image_dir)):
     output_path = os.path.join(output_dir, img)
     result = inference_detector(model, image_path)
 
-    show_result_pyplot(image_path, result, ['text'], out_file=output_path)
-
-    # model.show_result(image_path, result, out_file=output_path)
+    if 'polar' in model_name:
+        show_result_pyplot(image_path, result, ['text'], out_file=output_path)
+    else:
+        model.show_result(image_path, result, out_file=output_path)

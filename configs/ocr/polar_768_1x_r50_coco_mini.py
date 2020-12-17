@@ -56,12 +56,12 @@ test_cfg = dict(
 
 # dataset settings
 dataset_type = 'Coco_Seg_Dataset'
-data_root = 'data/coco/'
+data_root = 'data/coco_mini/'
 img_norm_cfg = dict(
     mean=[102.9801, 115.9465, 122.7717], std=[1.0, 1.0, 1.0], to_rgb=False)
 data = dict(
-    samples_per_gpu=4,
-    workers_per_gpu=4,
+    samples_per_gpu=1,
+    workers_per_gpu=1,
     train=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/train.json',
@@ -104,7 +104,7 @@ data = dict(
 lr_ratio = 1
 optimizer = dict(
     type='SGD',
-    lr=0.0001 * lr_ratio,
+    lr=0.0008 * lr_ratio,
     momentum=0.9,
     weight_decay=0.0001)
 optimizer_config = dict()
@@ -113,9 +113,9 @@ optimizer_config = dict()
 lr_config = dict(
     policy='step',
     warmup='linear',
-    warmup_iters=500,
+    warmup_iters=1,
     warmup_ratio=1.0 / 3 / lr_ratio,
-    step=[4, 6, 8])
+    step=[40, 80, 100])
 checkpoint_config = dict(interval=1)
 # yapf:disable
 log_config = dict(
@@ -126,7 +126,7 @@ log_config = dict(
     ])
 # yapf:enable
 # runtime settings
-total_epochs = 8
+total_epochs = 10000
 device_ids = range(4)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
