@@ -488,8 +488,16 @@ class SOLOHead(BaseDenseSegHead):
         seg_preds = F.interpolate(seg_preds.unsqueeze(0),
                                   size=upsampled_size_out,
                                   mode='bilinear')[:, :, :h, :w]
-        seg_masks = F.interpolate(seg_preds,
-                                  size=ori_shape[:2],
-                                  mode='bilinear').squeeze(0)
-        seg_masks = seg_masks > cfg.mask_thr
+
+        try:
+            seg_masks = F.interpolate(seg_preds,
+                                    size=ori_shape[:2],
+                                    mode='bilinear').squeeze(0)
+            seg_masks = seg_masks > cfg.mask_thr
+        except RuntimeError:
+            seg_preds = seg_preds.to('cpu') # seg_masks may cause 'RuntimeError: CUDA out of memory.'
+            seg_masks = F.interpolate(seg_preds,
+                                    size=ori_shape[:2],
+                                    mode='bilinear').squeeze(0)
+            seg_masks = seg_masks > cfg.mask_thr
         return seg_masks, cate_labels, cate_scores
