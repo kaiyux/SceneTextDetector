@@ -31,6 +31,13 @@ def dice_loss(input, target):
     return 1-d
 
 
+def bce_loss(input,target):
+    input = input.contiguous().view(input.size()[0], -1)
+    target = target.contiguous().view(target.size()[0], -1).float()
+
+    return nn.BCELoss()(input,target)
+
+
 @HEADS.register_module()
 class SOLOHead(BaseDenseSegHead):
     """SOLO: Segmenting Objects by Locations
@@ -74,6 +81,7 @@ class SOLOHead(BaseDenseSegHead):
         assert (self.background_label == 0
                 or self.background_label == num_classes)
         self.loss_cls = build_loss(loss_cls)
+        self.loss_mask_type = loss_mask['type']
         self.ins_loss_weight = loss_mask['loss_weight']
         self.conv_cfg = conv_cfg
         self.norm_cfg = norm_cfg
@@ -237,15 +245,29 @@ class SOLOHead(BaseDenseSegHead):
         loss_cls = self.loss_cls(flatten_cate_preds, flatten_cate_labels,
                                  avg_factor=num_ins + 1)
 
-        # dice loss
-        loss_mask = []
-        for input, target in zip(ins_preds, ins_labels):
-            if input.size()[0] == 0:
-                continue
-            input = torch.sigmoid(input)
-            loss_mask.append(dice_loss(input, target))
-        loss_mask = torch.cat(loss_mask).mean()
-        loss_mask = loss_mask * self.ins_loss_weight
+        if self.loss_mask_type == 'DiceLoss':
+            # dice loss
+            loss_mask = []
+            for input, target in zip(ins_preds, ins_labels):
+                if input.size()[0] == 0:
+                    continue
+                input = torch.sigmoid(input)
+                loss_mask.append(dice_loss(input, target))
+            loss_mask = torch.cat(loss_mask).mean()
+            loss_mask = loss_mask * self.ins_loss_weight
+        elif self.loss_mask_type == 'BCELoss':
+            # bce loss
+            loss_mask = []
+            for input, target in zip(ins_preds, ins_labels):
+                if input.size()[0] == 0:
+                    continue
+                input = torch.sigmoid(input)
+                loss_mask.append(bce_loss(input, target))
+            loss_mask = sum(loss_mask) / len(loss_mask)
+            loss_mask = loss_mask * self.ins_loss_weight
+        else:
+            raise RuntimeError(f'Unknown loss mask type:{self.loss_mask_type}')
+
         return dict(
             loss_mask=loss_mask,
             loss_cls=loss_cls)
