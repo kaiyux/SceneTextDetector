@@ -61,16 +61,17 @@ for image in tqdm(os.listdir(testset_dir)):
             mask *= 255
             contours, _ = cv2.findContours(
                 mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            points = [[float(point[0][0]), float(point[0][1])]
-                      for point in contours[0]]
-            if len(points) < 3:
-                continue
-            points.reverse()  # convert to clock-wise
-            confidence = bboxes[i][-1]
-            preds.append({
-                'points': points,
-                'confidence': float(confidence)
-            })
+            if len(contours) > 0:
+                points = [[float(point[0][0]), float(point[0][1])]
+                          for point in contours[0]]
+                if len(points) < 3:
+                    continue
+                points.reverse()  # convert to clock-wise
+                confidence = bboxes[i][-1]
+                preds.append({
+                    'points': points,
+                    'confidence': float(confidence)
+                })
 
     output_file = os.path.join(output_dir, image_index+'.json')
     with open(output_file, 'w')as f:
